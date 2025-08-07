@@ -57,7 +57,7 @@ func handleSetTheme(w http.ResponseWriter, r *http.Request) {
 // Handler functions for each page (similar structure).
 func handleIndex(w http.ResponseWriter, r *http.Request) {
 	data := PageData{Title: "Main Page", Theme: getThemeFromCookie(r)}
-	err := templates.ExecuteTemplate(w, "index.gohtml", data)
+	err := templates.ExecuteTemplate(w, "base_layout.gohtml", data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -65,7 +65,8 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 
 func handleProduct1(w http.ResponseWriter, r *http.Request) {
 	data := PageData{Title: "Product 1", Theme: getThemeFromCookie(r)}
-	err := templates.ExecuteTemplate(w, "product1.gohtml", data)
+	//err := templates.ExecuteTemplate(w, "product1.gohtml", data)
+	err := templates.ExecuteTemplate(w, "base_layout.gohtml", data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
