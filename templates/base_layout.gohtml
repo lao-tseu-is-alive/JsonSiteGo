@@ -1,7 +1,28 @@
+{{define "base_layout"}}
 
-{{template "header" .}}
-<hr>
-{{block "main" .}}
+    {{template "header" .}}
+    <hr>
+    {{if eq .MainBlock "index_main"}}
+        {{block "index_main" .}}
+        {{end}}
+    {{end}}
+    {{if eq .MainBlock "product1_main"}}
+        {{block "product1_main" .}}
+        {{end}}
+    {{end}}
+    {{if eq .MainBlock "product2_main"}}
+        {{block "product2_main" .}}
+        {{end}}
+    {{end}}
+    {{if eq .MainBlock "contact_main"}}
+        {{block "contact_main" .}}
+        {{end}}
+    {{end}}
+    {{if eq .MainBlock "about_main"}}
+        {{block "about_main" .}}
+        {{end}}
+    {{end}}
+
+    {{template "footer" .}}
+
 {{end}}
-
-{{template "footer" .}}

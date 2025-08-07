@@ -9,14 +9,26 @@ import (
 
 // PageData holds data passed to templates, including the current theme.
 type PageData struct {
-	Title string
-	Theme string // "light" or "dark"
+	Title     string
+	Theme     string // "light" or "dark"
+	MainBlock string
 }
 
 var templates *template.Template
 
 func main() {
-	templates = template.Must(template.ParseGlob(filepath.Join("templates", "*.gohtml")))
+	// Initialize templates
+	templates = template.New("main_template")
+
+	// Add custom functions if any
+	// templates.Funcs(template.FuncMap{})
+
+	// Parse all template files
+	_, err := templates.ParseGlob(filepath.Join("templates", "*.gohtml"))
+	if err != nil {
+		log.Fatalf("Error parsing templates: %v", err)
+	}
+	log.Println(templates.DefinedTemplates()) // Log all defined templates
 
 	// Define HTTP handlers for each page.
 	http.HandleFunc("/", handleIndex)
@@ -54,44 +66,38 @@ func handleSetTheme(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, referer, http.StatusSeeOther)
 }
 
-// Handler functions for each page (similar structure).
-func handleIndex(w http.ResponseWriter, r *http.Request) {
-	data := PageData{Title: "Main Page", Theme: getThemeFromCookie(r)}
-	err := templates.ExecuteTemplate(w, "base_layout.gohtml", data)
+// renderTemplate is a helper function to render templates.
+func renderTemplate(w http.ResponseWriter, tmpl string, data PageData) {
+	// We execute the base layout, which will in turn call the correct "main" template.
+	// The key is that we are executing a specific template file that defines the content.
+	err := templates.ExecuteTemplate(w, tmpl, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+// Handler functions for each page (similar structure).
+func handleIndex(w http.ResponseWriter, r *http.Request) {
+	data := PageData{Title: "Main Page", Theme: getThemeFromCookie(r), MainBlock: "index_main"}
+	renderTemplate(w, "index.gohtml", data)
 }
 
 func handleProduct1(w http.ResponseWriter, r *http.Request) {
-	data := PageData{Title: "Product 1", Theme: getThemeFromCookie(r)}
-	//err := templates.ExecuteTemplate(w, "product1.gohtml", data)
-	err := templates.ExecuteTemplate(w, "base_layout.gohtml", data)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	data := PageData{Title: "Product 1", Theme: getThemeFromCookie(r), MainBlock: "product1_main"}
+	renderTemplate(w, "product1.gohtml", data)
 }
 
 func handleProduct2(w http.ResponseWriter, r *http.Request) {
-	data := PageData{Title: "Product 2", Theme: getThemeFromCookie(r)}
-	err := templates.ExecuteTemplate(w, "product2.gohtml", data)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	data := PageData{Title: "Product 2", Theme: getThemeFromCookie(r), MainBlock: "product2_main"}
+	renderTemplate(w, "product2.gohtml", data)
 }
 
 func handleContact(w http.ResponseWriter, r *http.Request) {
-	data := PageData{Title: "Contact", Theme: getThemeFromCookie(r)}
-	err := templates.ExecuteTemplate(w, "contact.gohtml", data)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	data := PageData{Title: "Contact", Theme: getThemeFromCookie(r), MainBlock: "contact_main"}
+	renderTemplate(w, "contact.gohtml", data)
 }
 
 func handleAbout(w http.ResponseWriter, r *http.Request) {
-	data := PageData{Title: "About Us", Theme: getThemeFromCookie(r)}
-	err := templates.ExecuteTemplate(w, "about.gohtml", data)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	data := PageData{Title: "About Us", Theme: getThemeFromCookie(r), MainBlock: "about_main"}
+	renderTemplate(w, "about.gohtml", data)
 }
