@@ -1,31 +1,42 @@
 {{define "header"}}
-<!doctype html>
-<html lang="en" data-theme="{{.Theme}}">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{.Title}}</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-</head>
-<body>
-<header>
-    <nav>
-        <ul>
-            <li><a href="/">Main</a></li>
-            <li><a href="/product1">Product 1</a></li>
-            <li><a href="/product2">Product 2</a></li>
-            <li><a href="/contact">Contact</a></li>
-            <li><a href="/about">About Us</a></li>
-        </ul>
-    </nav>
-    <!-- Theme selector form -->
-    <form action="/set-theme" method="post">
-        <label for="theme">Select Theme:</label>
-        <select name="theme" id="theme">
-            <option value="light" {{if eq .Theme "light"}}selected{{end}}>Light</option>
-            <option value="dark" {{if eq .Theme "dark"}}selected{{end}}>Dark</option>
-        </select>
-        <button type="submit">Apply</button>
-    </form>
-</header>
+    <!doctype html>
+    <html lang="en" data-theme="{{.Theme}}">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{{.Title}}</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    </head>
+    <body>
+    <header class="container-fluid">
+        <nav>
+            <ul>
+                <li><strong>{{.Title}}</strong></li>
+            </ul>
+            <ul>
+                <li><a href="/">Main</a></li>
+                <li><a href="/product1">Product 1</a></li>
+                <li><a href="/product2">Product 2</a></li>
+                <li><a href="/contact">Contact</a></li>
+                <li><a href="/about">About Us</a></li>
+                <li>
+                    <details name="ThemeSelector">
+                        <summary role="button" class="outline secondary" data-placement="left" data-tooltip="settings">⚙</summary>
+                        <!-- Theme selector form -->
+                        <form action="/set-theme" method="post">
+                            <fieldset role="group">
+                                <legend>Choose your theme:</legend>
+                                <label for="theme">Turn on dark mode :
+                                    <input name="theme" type="checkbox" value="dark" role="switch"
+                                           {{if eq .Theme "dark"}}checked{{end}} />
+                                </label>
+                                <button type="submit">Apply</button>
+                            </fieldset>
+                        </form>
+                    </details>
+                </li>
+            </ul>
+        </nav>
+
+    </header>
 {{end}}

@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"strings"
 )
 
 // PageData holds data passed to templates, including the current theme.
@@ -21,7 +22,9 @@ func main() {
 	templates = template.New("main_template")
 
 	// Add custom functions if any
-	// templates.Funcs(template.FuncMap{})
+	templates.Funcs(template.FuncMap{
+		"replace": strings.ReplaceAll,
+	})
 
 	// Parse all template files
 	_, err := templates.ParseGlob(filepath.Join("templates", "*.gohtml"))
