@@ -1,8 +1,9 @@
-{{template "base_layout" .}}
-
-{{define "index_main"}}
+{{define "main"}}
 <main class="container">
     <h1>Welcome to the Main Page</h1>
     <p>This is the home page of our simple personal website.</p>
 </main>
+{{end}}
+
+{{block "base_layout" .}}
 {{end}}
