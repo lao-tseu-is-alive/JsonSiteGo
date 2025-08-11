@@ -1,26 +1,59 @@
 package main
 
 import (
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"time"
 )
 
 const (
-	pathToTemplates = "templates"
-	AppName         = "goHttpServer"
-	AppVersion      = "v0.0.1"
-	initCallMsg     = "INITIAL CALL TO %s()\n"
+	pathToTemplates     = "templates"
+	AppName             = "goHttpServer"
+	AppVersion          = "v0.0.1"
+	initCallMsg         = "INITIAL CALL TO %s()\n"
+	defaultPort         = 8888
+	defaultReadTimeout  = 10 * time.Second // max time to read request from the client
+	defaultWriteTimeout = 10 * time.Second // max time to write response to the client
+	defaultIdleTimeout  = 2 * time.Minute  // max time for connections using TCP Keep-Alive
 )
+
+type SiteData struct {
+	Title  string `json:"title"`
+	Footer string `json:"footer"`
+	Layout string `json:"layout"`
+}
 
 // PageData holds data passed to templates, including the current theme.
 type PageData struct {
-	Title     string
-	Theme     string // "light" or "dark"
-	MainBlock string
+	Site  SiteData
+	Title string
+	Theme string // "light" or "dark"
+}
+
+// getPortFromEnvOrPanic returns a valid TCP/IP listening port based on the values of environment variable :
+//
+//	PORT : int value between 1 and 65535 (the parameter defaultPort will be used if env is not defined)
+//	 in case the ENV variable PORT exists and contains an invalid integer the functions panics
+func getPortFromEnvOrPanic(defaultPort int) int {
+	srvPort := defaultPort
+	var err error
+	val, exist := os.LookupEnv("PORT")
+	if exist {
+		srvPort, err = strconv.Atoi(val)
+		if err != nil {
+			panic(fmt.Errorf("💥💥 ERROR: CONFIG ENV PORT should contain a valid integer. %v", err))
+		}
+	}
+	if srvPort < 1 || srvPort > 65535 {
+		panic(fmt.Errorf("💥💥 ERROR: PORT should contain an integer between 1 and 65535. Err: %v", err))
+	}
+	return srvPort
 }
 
 // getThemeFromCookie retrieves the theme from the cookie or defaults to "light".
@@ -50,7 +83,7 @@ func handleSetTheme(w http.ResponseWriter, r *http.Request) {
 func renderLayoutTemplate(name, layout, page string, l *log.Logger) (*template.Template, error) {
 	l.Printf("in renderLayoutTemplate(layout:%s, page:%s)", layout, page)
 	// Initialize templates
-	templates := template.New("base_layout") //should match the name of the define
+	templates := template.New(layout) //should match the name of the define
 
 	// Add custom functions if any
 	templates.Funcs(template.FuncMap{
@@ -61,7 +94,7 @@ func renderLayoutTemplate(name, layout, page string, l *log.Logger) (*template.T
 	_, err := templates.ParseFiles(
 		filepath.Join(pathToTemplates, "header.gohtml"),
 		filepath.Join(pathToTemplates, "footer.gohtml"),
-		filepath.Join(pathToTemplates, layout),
+		filepath.Join(pathToTemplates, fmt.Sprintf("%s.gohtml", layout)),
 		filepath.Join(pathToTemplates, page),
 	)
 	if err != nil {
@@ -73,16 +106,16 @@ func renderLayoutTemplate(name, layout, page string, l *log.Logger) (*template.T
 	return templates, err
 }
 
-// getIndexHandler functions for each page (similar structure).
-func getHandler(handlerName, layout, page string, l *log.Logger) http.HandlerFunc {
+// getHandler functions for each page (similar structure).
+func getHandler(handlerName, page string, site *SiteData, l *log.Logger) http.HandlerFunc {
 	l.Printf(initCallMsg, handlerName)
-	myTemplate, err := renderLayoutTemplate(handlerName, layout, page, l)
+	myTemplate, err := renderLayoutTemplate(handlerName, site.Layout, page, l)
 	if err != nil {
 		l.Fatalf("💥💥 fatal error in renderLayoutTemplate err: %v ", err)
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		data := PageData{Title: handlerName, Theme: getThemeFromCookie(r)}
+		data := PageData{Title: handlerName, Site: *site, Theme: getThemeFromCookie(r)}
 		err = myTemplate.Execute(w, data)
 		if err != nil {
 			l.Printf("💥💥 fatal error in template execution err: %v ", err)
@@ -95,14 +128,32 @@ func main() {
 	l := log.New(os.Stderr, AppName, log.Ldate|log.Ltime|log.Lshortfile)
 	l.Printf("🚀🚀 Starting App: %s, versio: %s", AppName, AppVersion)
 
-	// Define HTTP handlers for each page.
-	http.Handle("/", getHandler("Main", "base_layout.gohtml", "index.gohtml", l))
-	http.HandleFunc("/product1", getHandler("Product 1", "base_layout.gohtml", "product1.gohtml", l))
-	http.HandleFunc("/product2", getHandler("Product 2", "base_layout.gohtml", "product2.gohtml", l))
-	http.HandleFunc("/contact", getHandler("Contact", "base_layout.gohtml", "contact.gohtml", l))
-	http.HandleFunc("/about", getHandler("About", "base_layout.gohtml", "about.gohtml", l))
-	http.HandleFunc("/set-theme", handleSetTheme) // Endpoint for theme selection.
+	mySite := SiteData{
+		Title:  AppName,
+		Footer: "&copy; 2025 Simple Personal Web Demo. All rights reserved.",
+		Layout: "base_layout",
+	}
 
-	log.Println("Server starting on http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	myServerMux := http.NewServeMux()
+	listenAddress := fmt.Sprintf(":%d", getPortFromEnvOrPanic(defaultPort))
+
+	// Define HTTP handlers for each page.
+	myServerMux.Handle("GET /", getHandler("Main", "index.gohtml", &mySite, l))
+	myServerMux.Handle("GET /product1", getHandler("Product 1", "product1.gohtml", &mySite, l))
+	myServerMux.Handle("GET /product2", getHandler("Product 2", "product2.gohtml", &mySite, l))
+	myServerMux.Handle("GET /contact", getHandler("Contact", "contact.gohtml", &mySite, l))
+	myServerMux.Handle("GET /about", getHandler("About", "about.gohtml", &mySite, l))
+	myServerMux.HandleFunc("POST /set-theme", handleSetTheme) // Endpoint for theme selection.
+
+	server := http.Server{
+		Addr:         listenAddress,       // configure the bind address
+		Handler:      myServerMux,         // set the http mux
+		ErrorLog:     l,                   // set the logger for the server
+		ReadTimeout:  defaultReadTimeout,  // max time to read request from the client
+		WriteTimeout: defaultWriteTimeout, // max time to write response to the client
+		IdleTimeout:  defaultIdleTimeout,  // max time for connections using TCP Keep-Alive
+	}
+
+	log.Printf("Server starting on http://localhost%s", listenAddress)
+	log.Fatal(server.ListenAndServe())
 }
