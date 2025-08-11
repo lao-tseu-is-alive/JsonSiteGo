@@ -1,7 +1,8 @@
 {{define "main"}}
     <main class="container">
-        <h1>Product 1</h1>
-        <p>Details about Product 1. It's awesome!</p>
+        <h1>{{- /*gotype: github.com/lao-tseu-is-alive/go-simple-http-static-server.PageData*/ -}}
+            {{.Page.Title}}</h1>
+        <p>{{.Page.Content}}</p>
     </main>
 {{end}}
 

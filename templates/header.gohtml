@@ -14,14 +14,18 @@
                 <li><strong>{{.Site.Title}}</strong></li>
             </ul>
             <ul>
-                <li><a href="/">Main</a></li>
-                <li><a href="/product1">Product 1</a></li>
-                <li><a href="/product2">Product 2</a></li>
-                <li><a href="/contact">Contact</a></li>
-                <li><a href="/about">About Us</a></li>
+                {{- /*gotype: github.com/lao-tseu-is-alive/go-simple-http-static-server.PageData*/ -}}
+                {{ range .Site.Pages}}
+                    {{ if .HasHandler}}
+                        {{$realroute := splitFirst .Route}}
+                        <li><a href="{{$realroute}}">{{.Title}}</a></li>
+                    {{end}}
+                {{end}}
                 <li>
                     <details name="ThemeSelector">
-                        <summary role="button" class="outline secondary" data-placement="left" data-tooltip="settings">⚙</summary>
+                        <summary role="button" class="outline secondary" data-placement="left" data-tooltip="settings">
+                            ⚙
+                        </summary>
                         <!-- Theme selector form -->
                         <form action="/set-theme" method="post">
                             <fieldset role="group">

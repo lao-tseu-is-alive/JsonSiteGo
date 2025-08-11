@@ -1,0 +1,47 @@
+{
+  "title": "goHttpServer",
+  "footer": "© 2025 Simple Personal Web Demo. All rights reserved.",
+  "pages": [
+    {
+      "route": "GET /",
+      "title": "🏠 Home",
+      "template": "index.gohtml",
+      "layout": "base_layout",
+      "has_handler": true
+    },
+    {
+      "route": "GET /product1",
+      "title": "Product 1",
+      "content": "Here are some details about Product 1. It's awesome !",
+      "template": "product1.gohtml",
+      "layout": "base_layout",
+      "has_handler": true
+    },
+    {
+      "route": "GET /product2",
+      "title": "Product 2",
+      "content": "well Product 2. It's even better !",
+      "template": "product1.gohtml",
+      "layout": "base_layout",
+      "has_handler": true
+    },
+    {
+      "route": "GET /contact",
+      "title": "Contact",
+      "template": "contact.gohtml",
+      "layout": "base_layout",
+      "has_handler": true
+    },
+    {
+      "route": "GET /about",
+      "title": "About",
+      "template": "about.gohtml",
+      "layout": "base_layout",
+      "has_handler": true
+    },
+    {
+      "route": "POST /set-theme",
+      "has_handler": false
+    }
+  ]
+}
