@@ -7,7 +7,7 @@
       "title": "🏠 Home",
       "template": "index.gohtml",
       "layout": "base_layout",
-      "has_handler": true
+      "needs_handler": true
     },
     {
       "route": "GET /product1",
@@ -15,7 +15,26 @@
       "content": "Here are some details about Product 1. It's awesome !",
       "template": "product1.gohtml",
       "layout": "base_layout",
-      "has_handler": true
+      "needs_handler": true
+    },
+    {
+      "route": "GET /blog",
+      "title": "Blog",
+      "custom_content": [
+        {
+          "type": "AccordionCard",
+          "keyValues": {
+            "SummaryContent": "Card example in a 2 column grid",
+            "Article1Title": "This article 1 title",
+            "Article1Text": "This is the nice content of a beautiful article that people will love to read...",
+            "Article2Title": "This article 2 title",
+            "Article2Text": "This is another content for another article that everybody needs to read..."
+          }
+        }
+      ],
+      "template": "",
+      "layout": "other_layout",
+      "needs_handler": true
     },
     {
       "route": "GET /product2",
@@ -23,25 +42,25 @@
       "content": "well Product 2. It's even better !",
       "template": "product1.gohtml",
       "layout": "base_layout",
-      "has_handler": true
+      "needs_handler": true
     },
     {
       "route": "GET /contact",
       "title": "Contact",
       "template": "contact.gohtml",
       "layout": "base_layout",
-      "has_handler": true
+      "needs_handler": true
     },
     {
       "route": "GET /about",
       "title": "About",
       "template": "about.gohtml",
       "layout": "base_layout",
-      "has_handler": true
+      "needs_handler": true
     },
     {
       "route": "POST /set-theme",
-      "has_handler": false
+      "needs_handler": false
     }
   ]
 }

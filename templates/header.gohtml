@@ -16,7 +16,7 @@
             <ul>
                 {{- /*gotype: github.com/lao-tseu-is-alive/go-simple-http-static-server.PageData*/ -}}
                 {{ range .Site.Pages}}
-                    {{ if .HasHandler}}
+                    {{ if .NeedsHandler}}
                         {{$realroute := splitFirst .Route}}
                         <li><a href="{{$realroute}}">{{.Title}}</a></li>
                     {{end}}

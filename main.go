@@ -25,6 +25,12 @@ const (
 	defaultIdleTimeout    = 2 * time.Minute  // max time for connections using TCP Keep-Alive
 )
 
+// Route represents a parsed HTTP route.
+type Route struct {
+	Method string
+	Path   string
+}
+
 // SiteConfig holds the overall site configuration read from the config file.
 type SiteConfig struct {
 	Title  string `json:"title"`
@@ -34,12 +40,56 @@ type SiteConfig struct {
 
 // Page defines the structure for a single page in the website.
 type Page struct {
-	Route      string `json:"route"`
-	Title      string `json:"title"`
-	Content    string `json:"content"`
-	Template   string `json:"template"`
-	Layout     string `json:"layout"`
-	HasHandler bool   `json:"has_handler"`
+	Route         string         `json:"route"`
+	Title         string         `json:"title"`
+	Content       string         `json:"content"`
+	CustomContent []ContentBlock `json:"custom_content"`
+	Template      string         `json:"template"`
+	Layout        string         `json:"layout"`
+	NeedsHandler  bool           `json:"needs_handler"`
+}
+
+// ContentBlock defines a generic block of content.
+type ContentBlock struct {
+	Type      string            `json:"type"` // e.g., "AccordionCard", "AccordionFormGroup", "AccordionFormLabel"
+	KeyValues map[string]string `json:"keyValues"`
+}
+
+var CustomContentTemplates = map[string]string{
+	"AccordionCard": `
+{{define "main"}}
+    <main class="container">
+    <h1>{{- /*gotype: github.com/lao-tseu-is-alive/go-simple-http-static-server.PageData*/ -}}
+        {{.Page.Title}}</h1>
+    {{ range .Page.CustomContent }}
+        {{if eq .Type "AccordionCard"}}
+            <details name="AccordionCard">
+                <summary>{{.SummaryContent}}</summary>
+                <div class="grid">
+                    <div>
+                        <article>
+                            <header><strong>{{.Article1Title}}</strong></header>
+                            {{.Article1Text}}
+                        </article>
+                    </div>
+                    <div>
+                        <article>
+                            <header><strong>{{.Article2Title}}</strong></header>
+                            {{.Article2Text}}
+                        </article>
+                    </div>
+                </div>
+            </details>
+        {{ else }}
+            <article>
+                <header><strong>Error unhandled custom Type : {{.Type}} </strong></header>
+                Sorry but this typw of custom Content :{{.Type}}, is not supported.
+            </article>
+        {{ end }}
+    {{end}}
+{{end}}
+{{template "other_layout" .}}
+`,
 }
 
 // PageData holds data passed to templates, including the current theme.
@@ -127,19 +177,46 @@ func renderLayoutTemplate(page *Page, l *log.Logger) (*template.Template, error)
 	})
 
 	// Charger le layout + la page
-	_, err := templates.ParseFiles(
-		filepath.Join(pathToTemplates, "header.gohtml"),
-		filepath.Join(pathToTemplates, "footer.gohtml"),
-		filepath.Join(pathToTemplates, fmt.Sprintf("%s.gohtml", page.Layout)),
-		filepath.Join(pathToTemplates, page.Template),
-	)
-	if err != nil {
-		l.Printf(" renderLayoutTemplate parse error : %v", err)
-		return nil, err
+	if strings.TrimSpace(page.Template) != "" && page.CustomContent == nil {
+		_, err := templates.ParseFiles(
+			filepath.Join(pathToTemplates, "header.gohtml"),
+			filepath.Join(pathToTemplates, "footer.gohtml"),
+			filepath.Join(pathToTemplates, fmt.Sprintf("%s.gohtml", page.Layout)),
+			filepath.Join(pathToTemplates, page.Template),
+		)
+		if err != nil {
+			l.Printf(" renderLayoutTemplate parse error : %v", err)
+			return nil, err
+		}
+	} else {
+		_, err := templates.ParseFiles(
+			filepath.Join(pathToTemplates, "header.gohtml"),
+			filepath.Join(pathToTemplates, "footer.gohtml"),
+			filepath.Join(pathToTemplates, fmt.Sprintf("%s.gohtml", page.Layout)),
+		)
+		if err != nil {
+			l.Printf(" renderLayoutTemplate parse error : %v", err)
+			return nil, err
+		}
+		if page.CustomContent != nil {
+			customContent := page.CustomContent
+			for i := 0; i < len(customContent); i++ {
+				if customContent[i].Type == "AccordionCard" {
+					ccTemplate := CustomContentTemplates["AccordionCard"]
+					_, err := templates.Parse(ccTemplate)
+					if err != nil {
+						return nil, err
+					}
+				}
+			}
+		} else {
+			return nil, fmt.Errorf("error in page %#v, err: template and customcontent cannot be both nil", page)
+		}
+
 	}
 	// Log all defined templates
 	l.Println(templates.DefinedTemplates())
-	return templates, err
+	return templates, nil
 }
 
 // getHandler functions for each page (similar structure).
@@ -149,9 +226,21 @@ func getHandler(page *Page, site *SiteConfig, l *log.Logger) http.HandlerFunc {
 	if err != nil {
 		l.Fatalf("💥💥 fatal error in renderLayoutTemplate err: %v ", err)
 	}
+	parts := strings.Split(strings.TrimSpace(page.Route), " ")
+	// Create an instance of the Route struct
+	route := Route{
+		Method: parts[0],
+		Path:   parts[1],
+	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != route.Path {
+			l.Printf("💥 requested path %s is not here...", r.URL.Path)
+			http.Error(w, fmt.Errorf("requested path %s not found", r.URL.Path).Error(), http.StatusBadRequest)
+		}
+		l.Printf("in handler '%s' url: %s", page.Route, r.URL.Path)
 		data := PageData{Site: site, Page: page, Theme: getThemeFromCookie(r)}
+		l.Printf("data Page: %+v , site %+v", data.Page, data.Site)
 		err = myTemplate.Execute(w, data)
 		if err != nil {
 			l.Printf("💥💥 fatal error in template execution err: %v ", err)
@@ -170,15 +259,20 @@ func main() {
 	}
 	myServerMux := http.NewServeMux()
 	listenAddress := fmt.Sprintf(":%d", getPortFromEnvOrPanic(defaultPort))
+	myServerMux.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		l.Printf("in my handler 'GET /favicon.ico' url: %s", r.URL.Path)
+		http.ServeFile(w, r, "./favicon.ico")
+	})
 
 	// Dynamically register handlers based on the configuration.
 	for i := range config.Pages {
 		page := &config.Pages[i]
-		if page.HasHandler {
+		if page.NeedsHandler {
 			myServerMux.Handle(page.Route, getHandler(page, config, l))
 		}
 	}
 	myServerMux.HandleFunc("POST /set-theme", handleSetTheme) // Endpoint for theme selection.
+	// Handler for the favicon.ico request
 
 	server := http.Server{
 		Addr:         listenAddress,       // configure the bind address
