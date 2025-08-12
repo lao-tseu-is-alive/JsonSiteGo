@@ -63,6 +63,7 @@ var CustomContentTemplates = map[string]string{
         {{.Page.Title}}</h1>
     {{ range .Page.CustomContent }}
         {{if eq .Type "AccordionCard"}}
+			{{ with .KeyValues }}
             <details name="AccordionCard">
                 <summary>{{.SummaryContent}}</summary>
                 <div class="grid">
@@ -80,6 +81,7 @@ var CustomContentTemplates = map[string]string{
                     </div>
                 </div>
             </details>
+            {{ end }}
         {{ else }}
             <article>
                 <header><strong>Error unhandled custom Type : {{.Type}} </strong></header>
@@ -87,8 +89,8 @@ var CustomContentTemplates = map[string]string{
             </article>
         {{ end }}
     {{end}}
+    </main>
 {{end}}
-{{template "other_layout" .}}
 `,
 }
 
@@ -237,6 +239,7 @@ func getHandler(page *Page, site *SiteConfig, l *log.Logger) http.HandlerFunc {
 		if r.URL.Path != route.Path {
 			l.Printf("💥 requested path %s is not here...", r.URL.Path)
 			http.Error(w, fmt.Errorf("requested path %s not found", r.URL.Path).Error(), http.StatusBadRequest)
+			return
 		}
 		l.Printf("in handler '%s' url: %s", page.Route, r.URL.Path)
 		data := PageData{Site: site, Page: page, Theme: getThemeFromCookie(r)}
