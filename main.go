@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/xeipuuv/gojsonschema"
 )
 
 const (
@@ -21,6 +23,7 @@ const (
 	initCallMsg           = "INITIAL CALL TO %s()\n"
 	defaultPort           = 8888
 	defaultSiteConfigFile = "config.json"
+	defaultSchemaFile     = "https://raw.githubusercontent.com/lao-tseu-is-alive/go-simple-http-static-server/refs/heads/main/config.schema.json"
 	defaultReadTimeout    = 10 * time.Second // max time to read request from the client
 	defaultWriteTimeout   = 10 * time.Second // max time to write response to the client
 	defaultIdleTimeout    = 2 * time.Minute  // max time for connections using TCP Keep-Alive
@@ -79,20 +82,70 @@ type PageData struct {
 	MenuPages []Page
 }
 
-// LoadConfig reads a configuration file and decodes it into a SiteConfig struct.
-func LoadConfig(filename string) (*SiteConfig, error) {
-	data, err := os.ReadFile(filename)
+// LoadConfig now validates the config file against the schema before decoding.
+// configPath is the path to the config file to load
+// schemaPath is a local or remote schemas to validate
+func LoadConfig(configPath, schemaPath string) (*SiteConfig, error) {
+	var schemaLoader gojsonschema.JSONLoader
+
+	// Determine if the schema path is a remote URL or a local file
+	if strings.HasPrefix(schemaPath, "http://") || strings.HasPrefix(schemaPath, "https://") {
+		log.Printf("Attempting to load remote JSON schema from: %s", schemaPath)
+		schemaLoader = gojsonschema.NewReferenceLoader(schemaPath)
+	} else {
+		// It's a local file, check if it exists
+		if _, err := os.Stat(schemaPath); os.IsNotExist(err) {
+			log.Printf("WARNING: Local JSON schema file not found at '%s'. Skipping validation.", schemaPath)
+			// If schema is not found, we skip validation and proceed
+			data, err := os.ReadFile(configPath)
+			if err != nil {
+				return nil, err
+			}
+			var config SiteConfig
+			err = json.Unmarshal(data, &config)
+			return &config, err // Return here, no validation to perform
+		}
+		// It's a local file that exists, get its absolute path
+		absSchemaPath, err := filepath.Abs(schemaPath)
+		if err != nil {
+			return nil, fmt.Errorf("could not get absolute path for schema: %w", err)
+		}
+		log.Printf("Loading local JSON schema from: %s", absSchemaPath)
+		schemaLoader = gojsonschema.NewReferenceLoader("file://" + absSchemaPath)
+	}
+
+	// The document to validate is always a local file, so we still need its absolute path
+	absConfigPath, err := filepath.Abs(configPath)
+	if err != nil {
+		return nil, fmt.Errorf("could not get absolute path for config: %w", err)
+	}
+	documentLoader := gojsonschema.NewReferenceLoader("file://" + absConfigPath)
+
+	// Perform validation
+	result, err := gojsonschema.Validate(schemaLoader, documentLoader)
+	if err != nil {
+		return nil, fmt.Errorf("error during JSON schema validation: %w", err)
+	}
+
+	if !result.Valid() {
+		var errorStrings []string
+		errorStrings = append(errorStrings, "Configuration file is invalid. Please fix the following errors:")
+		for _, desc := range result.Errors() {
+			errorStrings = append(errorStrings, fmt.Sprintf("- %s: %s ", desc.Field(), desc.Description()))
+		}
+		return nil, fmt.Errorf(strings.Join(errorStrings, "\n"))
+	}
+	log.Println("✅ Configuration file validated successfully against schema.")
+
+	// If valid, unmarshal the config file into the struct
+	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, err
 	}
 
 	var config SiteConfig
 	err = json.Unmarshal(data, &config)
-	if err != nil {
-		return nil, err
-	}
-
-	return &config, nil
+	return &config, err
 }
 
 // getPortFromEnvOrPanic returns a valid TCP/IP listening port based on the values of environment variable :
@@ -152,7 +205,6 @@ func renderLayoutTemplate(page *Page, l *log.Logger) (*template.Template, error)
 			}
 			return ""
 		},
-		// Optional: Custom default function for robustness (not needed in Go 1.24.5)
 		"default": func(fallback, value string) string {
 			if value == "" {
 				return fallback
@@ -184,7 +236,6 @@ func renderLayoutTemplate(page *Page, l *log.Logger) (*template.Template, error)
 			}
 		}
 
-		// We use `if/else if` to check the component type and call the template with a string literal.
 		_, err = tmpl.Parse(`{{define "main"}}
             <main class="container">
                 <h1>{{.Page.Title}}</h1>
@@ -193,7 +244,6 @@ func renderLayoutTemplate(page *Page, l *log.Logger) (*template.Template, error)
                         {{template "AccordionCard" .}}
                     {{else if eq .Type "AccordionFormGroup"}}
                         {{template "AccordionFormGroup" .}}
-                    
                     {{else}}
                         <article>
                             <header><strong>Unsupported Component</strong></header>
@@ -221,7 +271,7 @@ func renderLayoutTemplate(page *Page, l *log.Logger) (*template.Template, error)
 	return tmpl, nil
 }
 
-// getHandler functions for each page (similar structure).
+// getHandler allow to register http handler in a generic way
 func getHandler(page *Page, site *SiteConfig, l *log.Logger) http.HandlerFunc {
 	l.Printf(initCallMsg, page.Title)
 	myTemplate, err := renderLayoutTemplate(page, l)
@@ -233,37 +283,29 @@ func getHandler(page *Page, site *SiteConfig, l *log.Logger) http.HandlerFunc {
 		Method: parts[0],
 		Path:   parts[1],
 	}
-	// --- OPTIMIZED SORTING LOGIC ---
-	// This logic now runs only ONCE when the handler is created, not on every request.
-	// 1. Create a new slice to hold pages for the menu.
 	var menuPages []Page
 	for _, p := range site.Pages {
-		// 2. Filter out drafts and pages not meant for the menu.
 		if !p.Draft && p.ShowInMenu {
 			menuPages = append(menuPages, p)
 		}
 	}
 
-	// 3. Sort the new slice based on the MenuOrder field.
 	sort.Slice(menuPages, func(i, j int) bool {
 		return menuPages[i].MenuOrder < menuPages[j].MenuOrder
 	})
-	// --- END OF OPTIMIZED LOGIC ---
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != route.Path {
 			l.Printf("💥 requested path %s is not here...", r.URL.Path)
 			http.Error(w, fmt.Errorf("requested path %s not found", r.URL.Path).Error(), http.StatusBadRequest)
-			return // Important to return after an error
+			return
 		}
 		l.Printf("in handler '%s' url: %s", page.Route, r.URL.Path)
-		// Pass the pre-sorted slice to the PageData struct.
-		// The `menuPages` variable is captured from the outer scope (a closure).
 		data := PageData{
 			Site:      site,
 			Page:      page,
 			Theme:     getThemeFromCookie(r),
-			MenuPages: menuPages, // <-- Pass the pre-sorted pages
+			MenuPages: menuPages,
 		}
 
 		l.Printf("data Page: %+v , site %+v", data.Page, data.Site)
@@ -279,7 +321,7 @@ func main() {
 	l := log.New(os.Stderr, AppName, log.Ldate|log.Ltime|log.Lshortfile)
 	l.Printf("🚀🚀 Starting App: %s, versio: %s", AppName, AppVersion)
 
-	config, err := LoadConfig(defaultSiteConfigFile)
+	config, err := LoadConfig(defaultSiteConfigFile, defaultSchemaFile)
 	if err != nil {
 		l.Fatalf("💥💥 fatal error loading config file: %v", err)
 	}
@@ -297,8 +339,7 @@ func main() {
 			myServerMux.Handle(page.Route, getHandler(page, config, l))
 		}
 	}
-	myServerMux.HandleFunc("POST /set-theme", handleSetTheme) // Endpoint for theme selection.
-	// Handler for the favicon.ico request
+	myServerMux.HandleFunc("POST /set-theme", handleSetTheme)
 
 	server := http.Server{
 		Addr:         listenAddress,       // configure the bind address
