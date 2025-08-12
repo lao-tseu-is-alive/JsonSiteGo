@@ -1,46 +1,54 @@
 {{define "header"}}
-    <!doctype html>
-    <html lang="en" data-theme="{{.Theme}}">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>{{.Site.Title}}</title>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-    </head>
-    <body>
-    <header class="container-fluid">
-        <nav>
-            <ul>
-                <li><strong>{{.Site.Title}}</strong></li>
-            </ul>
-            <ul>
-                {{- /*gotype: github.com/lao-tseu-is-alive/go-simple-http-static-server.PageData*/ -}}
-                {{ range .Site.Pages}}
-                    {{ if .NeedsHandler}}
-                        {{$realroute := splitFirst .Route}}
-                        <li><a href="{{$realroute}}">{{.Title}}</a></li>
-                    {{end}}
-                {{end}}
-                <li>
-                    <details name="ThemeSelector">
-                        <summary role="button" class="outline secondary" data-placement="left" data-tooltip="settings">
-                            ⚙
-                        </summary>
-                        <!-- Theme selector form -->
-                        <form action="/set-theme" method="post">
-                            <fieldset role="group">
-                                <legend>Choose your theme:</legend>
-                                <label for="theme">Turn on dark mode :
-                                    <input name="theme" type="checkbox" value="dark" role="switch"
-                                           {{if eq .Theme "dark"}}checked{{end}} />
-                                </label>
-                                <button type="submit">Apply</button>
-                            </fieldset>
-                        </form>
-                    </details>
-                </li>
-            </ul>
-        </nav>
+<!doctype html>
+<!-- The lang attribute is now set dynamically -->
+<html lang="{{- /*gotype: github.com/lao-tseu-is-alive/go-simple-http-static-server.PageData*/ -}}
+{{ .Site.Language | default "en" }}" data-theme="{{.Theme}}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    </header>
+    <!-- SEO and Metadata -->
+    <title>{{.Page.Title}} | {{.Site.Title}}</title>
+    <!-- Use page-specific description if available, otherwise use site-wide default -->
+    <meta name="description" content="{{with .Page.Description}}{{.}}{{else}}{{.Site.Description}}{{end}}">
+    <meta name="author" content="{{.Site.Author.Name}}">
+
+    <!-- The link to your CSS file -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+</head>
+<body>
+<header class="container-fluid">
+    <nav>
+        <ul>
+            <li><strong><a href="{{.Site.BaseURL}}">{{.Site.Title}}</a></strong></li>
+        </ul>
+        <ul>
+            {{ range .Site.Pages}}
+                {{/* Only show pages that are not drafts and are marked to be shown in the menu */}}
+                {{ if and (not .Draft) .ShowInMenu }}
+                    {{$realroute := splitFirst .Route}}
+                    <li><a href="{{$realroute}}">{{.Title}}</a></li>
+                {{ end }}
+            {{end}}
+            <li>
+                <details name="ThemeSelector">
+                    <summary role="button" class="outline secondary" data-placement="left" data-tooltip="settings">
+                        ⚙
+                    </summary>
+                    <!-- Theme selector form -->
+                    <form action="/set-theme" method="post">
+                        <fieldset role="group">
+                            <legend>Choose your theme:</legend>
+                            <label for="theme">Turn on dark mode :
+                                <input name="theme" type="checkbox" value="dark" role="switch"
+                                       {{if eq .Theme "dark"}}checked{{end}} />
+                            </label>
+                            <button type="submit">Apply</button>
+                        </fieldset>
+                    </form>
+                </details>
+            </li>
+        </ul>
+    </nav>
+</header>
 {{end}}

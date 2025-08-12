@@ -31,22 +31,37 @@ type Route struct {
 	Path   string
 }
 
+// Author contains author information
+type Author struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
 // SiteConfig holds the overall site configuration read from the config file.
 type SiteConfig struct {
-	Title  string `json:"title"`
-	Footer string `json:"footer"`
-	Pages  []Page `json:"pages"`
+	Title       string            `json:"title"`
+	BaseURL     string            `json:"baseURL"`
+	Language    string            `json:"language"`
+	Description string            `json:"description"`
+	Author      Author            `json:"author"`
+	Social      map[string]string `json:"social"` // e.g., "github": "https://..."
+	Footer      string            `json:"footer"`
+	Pages       []Page            `json:"pages"`
 }
 
 // Page defines the structure for a single page in the website.
 type Page struct {
-	Route         string         `json:"route"`
-	Title         string         `json:"title"`
-	Content       string         `json:"content"`
+	Route         string         `json:"route"`                 // the http Mux router like GET /page
+	Title         string         `json:"title"`                 // Page-specific title
+	Description   string         `json:"description,omitempty"` // Page-specific description
+	Draft         bool           `json:"draft,omitempty"`       // Don't render if true
+	CreateHandler bool           `json:"create_handler"`        // Should we register an handler
+	ShowInMenu    bool           `json:"showInMenu"`            // Control visibility in nav
+	MenuOrder     int            `json:"menuOrder,omitempty"`   // Control nav order
+	Content       string         `json:"content,omitempty"`
 	CustomContent []ContentBlock `json:"custom_content"`
 	Template      string         `json:"template"`
 	Layout        string         `json:"layout"`
-	NeedsHandler  bool           `json:"needs_handler"`
 }
 
 // ContentBlock defines a generic block of content.
@@ -125,8 +140,8 @@ func handleSetTheme(w http.ResponseWriter, r *http.Request) {
 func renderLayoutTemplate(page *Page, l *log.Logger) (*template.Template, error) {
 	l.Printf("in renderLayoutTemplate(layout:%s, page:%s)", page.Layout, page.Template)
 
-	layoutPath := filepath.Join(pathToTemplates, fmt.Sprintf("%s.gohtml", page.Layout))
-	tmpl := template.New(page.Layout).Funcs(template.FuncMap{
+	// Define FuncMap with custom functions
+	funcMap := template.FuncMap{
 		"replace": strings.ReplaceAll,
 		"splitFirst": func(s string) string {
 			parts := strings.Split(strings.TrimSpace(s), " ")
@@ -135,7 +150,16 @@ func renderLayoutTemplate(page *Page, l *log.Logger) (*template.Template, error)
 			}
 			return ""
 		},
-	})
+		// Optional: Custom default function for robustness (not needed in Go 1.24.5)
+		"default": func(fallback, value string) string {
+			if value == "" {
+				return fallback
+			}
+			return value
+		},
+	}
+	layoutPath := filepath.Join(pathToTemplates, fmt.Sprintf("%s.gohtml", page.Layout))
+	tmpl := template.New(page.Layout).Funcs(funcMap)
 
 	_, err := tmpl.ParseFiles(
 		layoutPath,
@@ -158,7 +182,6 @@ func renderLayoutTemplate(page *Page, l *log.Logger) (*template.Template, error)
 			}
 		}
 
-		// This is the corrected part.
 		// We use `if/else if` to check the component type and call the template with a string literal.
 		_, err = tmpl.Parse(`{{define "main"}}
             <main class="container">
@@ -204,7 +227,6 @@ func getHandler(page *Page, site *SiteConfig, l *log.Logger) http.HandlerFunc {
 		l.Fatalf("💥💥 fatal error in renderLayoutTemplate err: %v ", err)
 	}
 	parts := strings.Split(strings.TrimSpace(page.Route), " ")
-	// Create an instance of the Route struct
 	route := Route{
 		Method: parts[0],
 		Path:   parts[1],
@@ -214,7 +236,7 @@ func getHandler(page *Page, site *SiteConfig, l *log.Logger) http.HandlerFunc {
 		if r.URL.Path != route.Path {
 			l.Printf("💥 requested path %s is not here...", r.URL.Path)
 			http.Error(w, fmt.Errorf("requested path %s not found", r.URL.Path).Error(), http.StatusBadRequest)
-			return
+			return // Important to return after an error
 		}
 		l.Printf("in handler '%s' url: %s", page.Route, r.URL.Path)
 		data := PageData{Site: site, Page: page, Theme: getThemeFromCookie(r)}
@@ -245,7 +267,7 @@ func main() {
 	// Dynamically register handlers based on the configuration.
 	for i := range config.Pages {
 		page := &config.Pages[i]
-		if page.NeedsHandler {
+		if page.CreateHandler {
 			myServerMux.Handle(page.Route, getHandler(page, config, l))
 		}
 	}

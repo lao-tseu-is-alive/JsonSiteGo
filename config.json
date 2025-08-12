@@ -1,13 +1,27 @@
 {
-  "title": "goHttpServer",
-  "footer": "© 2025 Simple Personal Web Demo. All rights reserved.",
+  "title": "My Awesome Site",
+  "baseURL": "https://example.com/",
+  "language": "en-us",
+  "description": "A site about my cool projects.",
+  "author": {
+    "name": "Zygmundo Fizzlebottom",
+    "email": "zygmundo.fizzlebottom@example.com"
+  },
+  "social": {
+    "github": "https://github.com/zygmundofizzlebottom",
+    "linkedin": "https://linkedin.com/in/zygmundofizzlebottom"
+  },
+  "footer": "© 2025 Zygmundo Fizzlebottom. All rights reserved.",
   "pages": [
     {
       "route": "GET /",
       "title": "🏠 Home",
-      "template": "index.gohtml",
+      "content": "This is the home page of our simple personal website.",
+      "template": "main_basic.gohtml",
       "layout": "base_layout",
-      "needs_handler": true
+      "showInMenu": true,
+      "create_handler": true,
+      "menuOrder": 10
     },
     {
       "route": "GET /blog",
@@ -32,41 +46,60 @@
       ],
       "template": "",
       "layout": "other_layout",
-      "needs_handler": true
+      "showInMenu": true,
+      "create_handler": true,
+      "menuOrder": 20
+    },
+    {
+      "route": "GET /secret-project",
+      "title": "My Secret Project",
+      "description": "A special landing page for my secret project.",
+      "content": "Here are some details about  my secret project : It will be totally crazy !",
+      "layout": "base_layout",
+      "template": "main_basic.gohtml",
+      "draft": true,
+      "showInMenu": false,
+      "create_handler": true,
+      "menuOrder": 25
     },
     {
       "route": "GET /product1",
       "title": "Product 1",
       "content": "Here are some details about Product 1. It's awesome !",
-      "template": "product1.gohtml",
+      "template": "main_basic.gohtml",
       "layout": "base_layout",
-      "needs_handler": true
+      "showInMenu": true,
+      "create_handler": true,
+      "menuOrder": 30
     },
     {
       "route": "GET /product2",
       "title": "Product 2",
       "content": "well Product 2. It's even better !",
-      "template": "product1.gohtml",
+      "template": "main_basic.gohtml",
       "layout": "base_layout",
-      "needs_handler": true
+      "showInMenu": true,
+      "create_handler": true,
+      "menuOrder": 40
     },
     {
       "route": "GET /contact",
       "title": "Contact",
       "template": "contact.gohtml",
       "layout": "base_layout",
-      "needs_handler": true
+      "showInMenu": false,
+      "create_handler": true,
+      "menuOrder": 60
     },
     {
       "route": "GET /about",
       "title": "About",
-      "template": "about.gohtml",
+      "content": "We are a small team building cool products.",
+      "template": "main_basic.gohtml",
       "layout": "base_layout",
-      "needs_handler": true
-    },
-    {
-      "route": "POST /set-theme",
-      "needs_handler": false
+      "showInMenu": true,
+      "create_handler": true,
+      "menuOrder": 50
     }
   ]
 }
