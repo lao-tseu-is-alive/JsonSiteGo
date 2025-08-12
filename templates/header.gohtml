@@ -12,9 +12,9 @@
     <!-- Use page-specific description if available, otherwise use site-wide default -->
     <meta name="description" content="{{with .Page.Description}}{{.}}{{else}}{{.Site.Description}}{{end}}">
     <meta name="author" content="{{.Site.Author.Name}}">
-
-    <!-- The link to your CSS file -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.colors.min.css"
+    >
 </head>
 <body>
 <header class="container-fluid">
@@ -23,7 +23,7 @@
             <li><strong><a href="{{.Site.BaseURL}}">{{.Site.Title}}</a></strong></li>
         </ul>
         <ul>
-            {{ range .Site.Pages}}
+            {{ range .MenuPages}}
                 {{/* Only show pages that are not drafts and are marked to be shown in the menu */}}
                 {{ if and (not .Draft) .ShowInMenu }}
                     {{$realroute := splitFirst .Route}}

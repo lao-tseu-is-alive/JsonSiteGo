@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -72,9 +73,10 @@ type ContentBlock struct {
 
 // PageData holds data passed to templates, including the current theme.
 type PageData struct {
-	Site  *SiteConfig
-	Page  *Page
-	Theme string
+	Site      *SiteConfig
+	Page      *Page
+	Theme     string
+	MenuPages []Page
 }
 
 // LoadConfig reads a configuration file and decodes it into a SiteConfig struct.
@@ -231,6 +233,22 @@ func getHandler(page *Page, site *SiteConfig, l *log.Logger) http.HandlerFunc {
 		Method: parts[0],
 		Path:   parts[1],
 	}
+	// --- OPTIMIZED SORTING LOGIC ---
+	// This logic now runs only ONCE when the handler is created, not on every request.
+	// 1. Create a new slice to hold pages for the menu.
+	var menuPages []Page
+	for _, p := range site.Pages {
+		// 2. Filter out drafts and pages not meant for the menu.
+		if !p.Draft && p.ShowInMenu {
+			menuPages = append(menuPages, p)
+		}
+	}
+
+	// 3. Sort the new slice based on the MenuOrder field.
+	sort.Slice(menuPages, func(i, j int) bool {
+		return menuPages[i].MenuOrder < menuPages[j].MenuOrder
+	})
+	// --- END OF OPTIMIZED LOGIC ---
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != route.Path {
@@ -239,7 +257,15 @@ func getHandler(page *Page, site *SiteConfig, l *log.Logger) http.HandlerFunc {
 			return // Important to return after an error
 		}
 		l.Printf("in handler '%s' url: %s", page.Route, r.URL.Path)
-		data := PageData{Site: site, Page: page, Theme: getThemeFromCookie(r)}
+		// Pass the pre-sorted slice to the PageData struct.
+		// The `menuPages` variable is captured from the outer scope (a closure).
+		data := PageData{
+			Site:      site,
+			Page:      page,
+			Theme:     getThemeFromCookie(r),
+			MenuPages: menuPages, // <-- Pass the pre-sorted pages
+		}
+
 		l.Printf("data Page: %+v , site %+v", data.Page, data.Site)
 		err = myTemplate.Execute(w, data)
 		if err != nil {

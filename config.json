@@ -58,7 +58,7 @@
       "layout": "base_layout",
       "template": "main_basic.gohtml",
       "draft": true,
-      "showInMenu": false,
+      "showInMenu": true,
       "create_handler": true,
       "menuOrder": 25
     },
@@ -78,7 +78,7 @@
       "content": "well Product 2. It's even better !",
       "template": "main_basic.gohtml",
       "layout": "base_layout",
-      "showInMenu": true,
+      "showInMenu": false,
       "create_handler": true,
       "menuOrder": 40
     },
@@ -87,7 +87,7 @@
       "title": "Contact",
       "template": "contact.gohtml",
       "layout": "base_layout",
-      "showInMenu": false,
+      "showInMenu": true,
       "create_handler": true,
       "menuOrder": 60
     },

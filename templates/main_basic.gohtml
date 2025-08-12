@@ -1,7 +1,10 @@
 {{define "main"}}
-<main class="container">
-    <h1>{{- /*gotype: github.com/lao-tseu-is-alive/go-simple-http-static-server.PageData*/ -}}
-        {{.Page.Title}} Page</h1>
-    <p>{{.Page.Content}}</p>
-</main>
+    <main class="container">
+        {{- /*gotype: github.com/lao-tseu-is-alive/go-simple-http-static-server.PageData*/ -}}
+        {{ if .Page.Draft}}
+            <article class="pico-background-pink-600">⚠️ ⚠️ Warning : this page is a draft !</article>
+        {{end}}
+        <h1>{{.Page.Title}} Page</h1>
+        <p>{{.Page.Content}}</p>
+    </main>
 {{end}}
