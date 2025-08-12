@@ -46,7 +46,7 @@
         }
       ],
       "template": "",
-      "layout": "other_layout",
+      "layout": "base_layout",
       "showInMenu": true,
       "create_handler": true,
       "menuOrder": 20
