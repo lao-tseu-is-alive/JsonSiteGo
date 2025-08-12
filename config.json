@@ -1,4 +1,5 @@
 {
+  "$schema": "./config.schema.json",
   "title": "My Awesome Site",
   "baseURL": "https://example.com/",
   "language": "en-us",

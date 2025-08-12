@@ -1,0 +1,136 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Site Configuration",
+  "description": "Schema for the config.json file used by the Go HTTP server.",
+  "type": "object",
+  "required": [
+    "title",
+    "baseURL",
+    "language",
+    "footer",
+    "pages"
+  ],
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "The main title of the website, used in the browser tab and header."
+    },
+    "baseURL": {
+      "type": "string",
+      "description": "The absolute root URL of the site (e.g., 'https://example.com/'). Essential for SEO.",
+      "format": "uri"
+    },
+    "language": {
+      "type": "string",
+      "description": "The primary language code for the site (e.g., 'en-us'). Used for the <html lang='...'> attribute."
+    },
+    "description": {
+      "type": "string",
+      "description": "A default, site-wide description for search engines."
+    },
+    "author": {
+      "type": "object",
+      "description": "Information about the site owner.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The full name of the author."
+        },
+        "email": {
+          "type": "string",
+          "description": "The contact email of the author.",
+          "format": "email"
+        }
+      },
+      "required": ["name"]
+    },
+    "social": {
+      "type": "object",
+      "description": "A map of social media platforms to their URLs. Keys are the platform names (e.g., 'github'), values are the full URLs.",
+      "additionalProperties": {
+        "type": "string",
+        "format": "uri"
+      }
+    },
+    "footer": {
+      "type": "string",
+      "description": "The text to display in the site's footer, often a copyright notice."
+    },
+    "pages": {
+      "type": "array",
+      "description": "An array of objects, where each object defines a page on the website.",
+      "items": {
+        "type": "object",
+        "required": [
+          "route",
+          "title",
+          "layout"
+        ],
+        "properties": {
+          "route": {
+            "type": "string",
+            "description": "The HTTP method and path for the page router (e.g., 'GET /about')."
+          },
+          "title": {
+            "type": "string",
+            "description": "The title of this specific page."
+          },
+          "description": {
+            "type": "string",
+            "description": "A page-specific description for SEO, overriding the site-wide one."
+          },
+          "draft": {
+            "type": "boolean",
+            "description": "If true, this page will not be rendered or included in the menu. Defaults to false.",
+            "default": false
+          },
+          "create_handler": {
+            "type": "boolean",
+            "description": "If true, a Go HTTP handler will be registered for this route. Defaults to false.",
+            "default": false
+          },
+          "showInMenu": {
+            "type": "boolean",
+            "description": "If true, this page will be included in the main navigation menu. Defaults to false.",
+            "default": false
+          },
+          "menuOrder": {
+            "type": "integer",
+            "description": "An integer to control the sorting of pages in the menu. Lower numbers appear first."
+          },
+          "content": {
+            "type": "string",
+            "description": "Simple string content for the page. Used if 'custom_content' is not provided."
+          },
+          "custom_content": {
+            "type": "array",
+            "description": "A list of custom content blocks (components) to build the page.",
+            "items": {
+              "type": "object",
+              "required": ["type", "keyValues"],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "description": "The type of the component to render (e.g., 'AccordionCard'). Must match a component template name."
+                },
+                "keyValues": {
+                  "type": "object",
+                  "description": "A map of key-value pairs containing the data for this component.",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "template": {
+            "type": "string",
+            "description": "The filename of the page-specific content template (e.g., 'index.gohtml')."
+          },
+          "layout": {
+            "type": "string",
+            "description": "The filename of the layout template to use (e.g., 'base_layout')."
+          }
+        }
+      }
+    }
+  }
+}
