@@ -19,7 +19,7 @@ import (
 const (
 	pathToTemplates       = "templates"
 	AppName               = "goHttpServer"
-	AppVersion            = "v0.0.1"
+	AppVersion            = "v0.1.1"
 	initCallMsg           = "INITIAL CALL TO %s()\n"
 	defaultPort           = 8888
 	defaultSiteConfigFile = "config.json"
@@ -181,8 +181,14 @@ func getThemeFromCookie(r *http.Request) string {
 func handleSetTheme(w http.ResponseWriter, r *http.Request) {
 	theme := r.FormValue("theme")
 	if theme != "light" && theme != "dark" {
+		theme = getThemeFromCookie(r)
+	}
+	if theme == "light" {
+		theme = "dark"
+	} else {
 		theme = "light"
 	}
+
 	http.SetCookie(w, &http.Cookie{Name: "theme", Value: theme, Path: "/"})
 	// Redirect back to the page the user came from.
 	referer := r.Referer()
@@ -340,6 +346,7 @@ func main() {
 		}
 	}
 	myServerMux.HandleFunc("POST /set-theme", handleSetTheme)
+	myServerMux.HandleFunc("GET /set-theme", handleSetTheme)
 
 	server := http.Server{
 		Addr:         listenAddress,       // configure the bind address
