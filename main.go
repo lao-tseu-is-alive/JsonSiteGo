@@ -51,47 +51,8 @@ type Page struct {
 
 // ContentBlock defines a generic block of content.
 type ContentBlock struct {
-	Type      string            `json:"type"` // e.g., "AccordionCard", "AccordionFormGroup", "AccordionFormLabel"
-	KeyValues map[string]string `json:"keyValues"`
-}
-
-var CustomContentTemplates = map[string]string{
-	"AccordionCard": `
-{{define "main"}}
-    <main class="container">
-    <h1>{{- /*gotype: github.com/lao-tseu-is-alive/go-simple-http-static-server.PageData*/ -}}
-        {{.Page.Title}}</h1>
-    {{ range .Page.CustomContent }}
-        {{if eq .Type "AccordionCard"}}
-			{{ with .KeyValues }}
-            <details name="AccordionCard">
-                <summary>{{.SummaryContent}}</summary>
-                <div class="grid">
-                    <div>
-                        <article>
-                            <header><strong>{{.Article1Title}}</strong></header>
-                            {{.Article1Text}}
-                        </article>
-                    </div>
-                    <div>
-                        <article>
-                            <header><strong>{{.Article2Title}}</strong></header>
-                            {{.Article2Text}}
-                        </article>
-                    </div>
-                </div>
-            </details>
-            {{ end }}
-        {{ else }}
-            <article>
-                <header><strong>Error unhandled custom Type : {{.Type}} </strong></header>
-                Sorry but this typw of custom Content :{{.Type}}, is not supported.
-            </article>
-        {{ end }}
-    {{end}}
-    </main>
-{{end}}
-`,
+	Type      string                 `json:"type"` // e.g., "AccordionCard", "AccordionFormGroup", "AccordionFormLabel"
+	KeyValues map[string]interface{} `json:"keyValues"`
 }
 
 // PageData holds data passed to templates, including the current theme.
@@ -163,62 +124,76 @@ func handleSetTheme(w http.ResponseWriter, r *http.Request) {
 
 func renderLayoutTemplate(page *Page, l *log.Logger) (*template.Template, error) {
 	l.Printf("in renderLayoutTemplate(layout:%s, page:%s)", page.Layout, page.Template)
-	// Initialize templates
-	templates := template.New(page.Layout) //should match the name of the define
 
-	// Add custom functions if any
-	templates.Funcs(template.FuncMap{
+	layoutPath := filepath.Join(pathToTemplates, fmt.Sprintf("%s.gohtml", page.Layout))
+	tmpl := template.New(page.Layout).Funcs(template.FuncMap{
 		"replace": strings.ReplaceAll,
 		"splitFirst": func(s string) string {
 			parts := strings.Split(strings.TrimSpace(s), " ")
-			if len(parts) > 0 {
+			if len(parts) > 1 {
 				return parts[1]
 			}
 			return ""
 		},
 	})
 
-	// Charger le layout + la page
-	if strings.TrimSpace(page.Template) != "" && page.CustomContent == nil {
-		_, err := templates.ParseFiles(
-			filepath.Join(pathToTemplates, "header.gohtml"),
-			filepath.Join(pathToTemplates, "footer.gohtml"),
-			filepath.Join(pathToTemplates, fmt.Sprintf("%s.gohtml", page.Layout)),
-			filepath.Join(pathToTemplates, page.Template),
-		)
+	_, err := tmpl.ParseFiles(
+		layoutPath,
+		filepath.Join(pathToTemplates, "header.gohtml"),
+		filepath.Join(pathToTemplates, "footer.gohtml"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing layout/partial templates: %w", err)
+	}
+
+	if page.CustomContent != nil {
+		componentTemplates, err := filepath.Glob(filepath.Join(pathToTemplates, "components", "*.gohtml"))
 		if err != nil {
-			l.Printf(" renderLayoutTemplate parse error : %v", err)
-			return nil, err
+			return nil, fmt.Errorf("error finding component templates: %w", err)
 		}
-	} else {
-		_, err := templates.ParseFiles(
-			filepath.Join(pathToTemplates, "header.gohtml"),
-			filepath.Join(pathToTemplates, "footer.gohtml"),
-			filepath.Join(pathToTemplates, fmt.Sprintf("%s.gohtml", page.Layout)),
-		)
-		if err != nil {
-			l.Printf(" renderLayoutTemplate parse error : %v", err)
-			return nil, err
-		}
-		if page.CustomContent != nil {
-			customContent := page.CustomContent
-			for i := 0; i < len(customContent); i++ {
-				if customContent[i].Type == "AccordionCard" {
-					ccTemplate := CustomContentTemplates["AccordionCard"]
-					_, err := templates.Parse(ccTemplate)
-					if err != nil {
-						return nil, err
-					}
-				}
+		if len(componentTemplates) > 0 {
+			_, err = tmpl.ParseFiles(componentTemplates...)
+			if err != nil {
+				return nil, fmt.Errorf("error parsing component templates: %w", err)
 			}
-		} else {
-			return nil, fmt.Errorf("error in page %#v, err: template and customcontent cannot be both nil", page)
 		}
 
+		// This is the corrected part.
+		// We use `if/else if` to check the component type and call the template with a string literal.
+		_, err = tmpl.Parse(`{{define "main"}}
+            <main class="container">
+                <h1>{{.Page.Title}}</h1>
+                {{range .Page.CustomContent}}
+                    {{if eq .Type "AccordionCard"}}
+                        {{template "AccordionCard" .}}
+                    {{else if eq .Type "AccordionFormGroup"}}
+                        {{template "AccordionFormGroup" .}}
+                    
+                    {{else}}
+                        <article>
+                            <header><strong>Unsupported Component</strong></header>
+                            <p>Error: The component type '{{.Type}}' is not supported.</p>
+                        </article>
+                    {{end}}
+                {{end}}
+            </main>
+        {{end}}`)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing dynamic main template for custom content: %w", err)
+		}
+
+	} else if strings.TrimSpace(page.Template) != "" {
+		pageTemplatePath := filepath.Join(pathToTemplates, page.Template)
+		_, err = tmpl.ParseFiles(pageTemplatePath)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing page template %s: %w", pageTemplatePath, err)
+		}
 	}
-	// Log all defined templates
-	l.Println(templates.DefinedTemplates())
-	return templates, nil
+
+	l.Println("--- Defined Templates ---")
+	l.Println(tmpl.DefinedTemplates())
+	l.Println("-------------------------")
+	return tmpl, nil
 }
 
 // getHandler functions for each page (similar structure).

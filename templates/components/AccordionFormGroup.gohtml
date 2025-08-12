@@ -1,0 +1,13 @@
+{{define "AccordionFormGroup"}}
+    {{ with .KeyValues }}
+        <details name="AccordionFormGroup">
+            <summary>{{.SummaryContent}}</summary>
+            <form>
+                <fieldset role="group">
+                    <input name="email" type="email" placeholder="Enter your email" autocomplete="email" aria-label="Email" aria-describedby="email-helper" />
+                    <input type="submit" value="Subscribe" />
+                </fieldset>
+            </form>
+        </details>
+    {{ end }}
+{{end}}

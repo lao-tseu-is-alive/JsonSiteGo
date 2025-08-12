@@ -10,14 +10,6 @@
       "needs_handler": true
     },
     {
-      "route": "GET /product1",
-      "title": "Product 1",
-      "content": "Here are some details about Product 1. It's awesome !",
-      "template": "product1.gohtml",
-      "layout": "base_layout",
-      "needs_handler": true
-    },
-    {
       "route": "GET /blog",
       "title": "Blog",
       "custom_content": [
@@ -30,10 +22,24 @@
             "Article2Title": "This article 2 title",
             "Article2Text": "This is another content for another article that everybody needs to read..."
           }
+        },
+        {
+          "type": "AccordionFormGroup",
+          "keyValues": {
+            "SummaryContent": "Form using group role in fieldset"
+          }
         }
       ],
       "template": "",
       "layout": "other_layout",
+      "needs_handler": true
+    },
+    {
+      "route": "GET /product1",
+      "title": "Product 1",
+      "content": "Here are some details about Product 1. It's awesome !",
+      "template": "product1.gohtml",
+      "layout": "base_layout",
       "needs_handler": true
     },
     {

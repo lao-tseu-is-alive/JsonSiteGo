@@ -1,0 +1,21 @@
+{{define "AccordionCard"}}
+    {{ with .KeyValues }}
+        <details name="AccordionCard" open>
+            <summary>{{.SummaryContent}}</summary>
+            <div class="grid">
+                <div>
+                    <article>
+                        <header><strong>{{.Article1Title}}</strong></header>
+                        {{.Article1Text}}
+                    </article>
+                </div>
+                <div>
+                    <article>
+                        <header><strong>{{.Article2Title}}</strong></header>
+                        {{.Article2Text}}
+                    </article>
+                </div>
+            </div>
+        </details>
+    {{ end }}
+{{end}}
