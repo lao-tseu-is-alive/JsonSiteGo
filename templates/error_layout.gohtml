@@ -1,0 +1,18 @@
+{{define "error_layout"}}
+
+    {{template "header" .}}
+    {{- /*gotype: github.com/lao-tseu-is-alive/JsonSiteGo.PageData*/ -}}
+    {{ if .Page.IsHavingError}}
+        {{ if eq .Page.ErrorHttpCode "error_404"}}
+            {{template "error_404"}}
+        {{ else if .Page.ErrorHttpCode "error_500"}}
+            {{template "error_500"}}
+        {{ else}}
+            <article class="pico-background-red-600">⚠️ ⚠️ got error : {{.Page.ErrorMsg}} !</article>
+        {{end }}
+    {{end}}
+
+
+    {{template "footer" .}}
+
+{{end}}

@@ -1,7 +1,14 @@
-{{define "error_404"}}
-<main class="container">
-    <h1>404 - Page Not Found</h1>
-    <p>The page you were looking for does not exist.</p>
-    <a href="/">Back to home</a>
-</main>
+{{define "main"}}
+    <main class="container">
+        <article>
+            <header><h2>404 - Page Not Found</h2></header>
+            <p>Sorry the page you were looking for does not exist.</p>
+            {{- /*gotype: github.com/lao-tseu-is-alive/JsonSiteGo.PageData*/ -}}
+            {{if .Page.ErrorMsg}}
+                <kbd>{{.Page.ErrorMsg}}</kbd>
+            {{end}}
+            <hr>
+            <a href="/">Back to home page</a>
+        </article>
+    </main>
 {{end}}

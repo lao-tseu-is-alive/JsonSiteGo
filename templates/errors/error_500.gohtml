@@ -1,10 +1,14 @@
-{{define "error_500"}}
+{{define "main"}}
     <main class="container">
-        <h1>500 - Internal Server Error</h1>
-        <p>Something went wrong on our end. Please try again later.</p>
-        <a href="/">Back to home</a>
-        {{if .Error}}
-            <pre>{{.Error}}</pre>
-        {{end}}
+        <article>
+            <header><h2>500 - Internal Server Error</h2></header>
+            <p>Sorry, something went wrong on our end. Please try again later.</p>
+            {{- /*gotype: github.com/lao-tseu-is-alive/JsonSiteGo.PageData*/ -}}
+            {{if .Page.ErrorMsg}}
+                <kbd>{{.Page.ErrorMsg}}</kbd>
+            {{end}}
+            <hr>
+            <a href="/">Back to home page</a>
+        </article>
     </main>
 {{end}}
