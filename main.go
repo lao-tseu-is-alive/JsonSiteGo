@@ -19,9 +19,9 @@ import (
 
 const (
 	pathToTemplates       = "templates"
-	AppName               = "goMagicWebServer"
+	AppName               = "JsonSiteGo"
 	AppGitHub             = "https://github.com/lao-tseu-is-alive/JsonSiteGo.git"
-	AppVersion            = "v0.2.2" // Incremented version
+	AppVersion            = "v0.2.3" // Incremented version
 	initCallMsg           = "INITIAL CALL TO %s()\n"
 	defaultPort           = 8888
 	defaultSiteConfigFile = "config.json"
@@ -306,14 +306,14 @@ func parseTemplates(config *SiteConfig, l *log.Logger) error {
 		}
 
 		if page.CustomContent != nil {
-			/*
-				var sb strings.Builder
-				sb.WriteString(`{{define "main"}}<main class="container"><h1>{{.Page.Title}}</h1>`)
-				for _, block := range page.CustomContent {
-					sb.WriteString(fmt.Sprintf(`{{template "%s" .}}`, block.Type))
-				}
-				sb.WriteString(`</main>{{end}}`)
-				_, err = tmpl.Parse(sb.String())
+			/* maybe : build the template based on available components ?
+			var sb strings.Builder
+			sb.WriteString(`{{define "main"}}<main class="container"><h1>{{.Page.Title}}</h1>`)
+			for _, block := range page.CustomContent {
+				sb.WriteString(fmt.Sprintf(`{{template "%s" .}}`, block.Type))
+			}
+			sb.WriteString(`</main>{{end}}`)
+			_, err = tmpl.Parse(sb.String())
 
 			*/
 			_, err = tmpl.Parse(customContentTemplate)
@@ -403,7 +403,7 @@ func getHandler(page *Page, site *SiteConfig, l *log.Logger) http.HandlerFunc {
 }
 
 func main() {
-	l := log.New(os.Stderr, AppName, log.Ldate|log.Ltime|log.Lshortfile)
+	l := log.New(os.Stderr, fmt.Sprintf("%s, ", AppName), log.Ldate|log.Ltime|log.Lshortfile)
 	l.Printf("🚀🚀 Starting App: %s, version: %s, from: %s", AppName, AppVersion, AppGitHub)
 
 	config, err := LoadConfig(defaultSiteConfigFile, defaultSchemaFile, l)
