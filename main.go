@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -28,6 +29,13 @@ const (
 	defaultReadTimeout    = 10 * time.Second // max time to read request from the client
 	defaultWriteTimeout   = 10 * time.Second // max time to write response to the client
 	defaultIdleTimeout    = 2 * time.Minute  // max time for connections using TCP Keep-Alive
+)
+
+var (
+	//create our cache to hold the final, assembled templates for each route.
+	templateCache = make(map[string]*template.Template)
+	error404Tmpl  *template.Template
+	error500Tmpl  *template.Template
 )
 
 // Route represents a parsed HTTP route.
@@ -81,6 +89,54 @@ type PageData struct {
 	Page      *Page
 	Theme     string
 	MenuPages []Page
+}
+
+func wantsJSON(r *http.Request) bool {
+	return strings.Contains(r.Header.Get("Accept"), "application/json")
+}
+
+func loadErrorTemplates() error {
+	var err error
+	error404Tmpl, err = template.ParseFiles(
+		filepath.Join(pathToTemplates, "errors", "error_404.gohtml"),
+		filepath.Join(pathToTemplates, "base_layout.gohtml"),
+		filepath.Join(pathToTemplates, "header.gohtml"),
+		filepath.Join(pathToTemplates, "footer.gohtml"),
+	)
+	if err != nil {
+		return err
+	}
+	error500Tmpl, err = template.ParseFiles(
+		filepath.Join(pathToTemplates, "errors", "error_500.gohtml"),
+		filepath.Join(pathToTemplates, "base_layout.gohtml"),
+		filepath.Join(pathToTemplates, "header.gohtml"),
+		filepath.Join(pathToTemplates, "footer.gohtml"),
+	)
+	return err
+}
+
+func renderError404(w http.ResponseWriter, r *http.Request) {
+	if wantsJSON(r) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		io.WriteString(w, `{"error":"not found"}`)
+		return
+	}
+	w.WriteHeader(http.StatusNotFound)
+	error404Tmpl.ExecuteTemplate(w, "base_layout", nil)
+}
+
+func renderError500(w http.ResponseWriter, r *http.Request, err error) {
+	if wantsJSON(r) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		io.WriteString(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()))
+		return
+	}
+	w.WriteHeader(http.StatusInternalServerError)
+	error500Tmpl.ExecuteTemplate(w, "base_layout", map[string]interface{}{
+		"Error": err.Error(),
+	})
 }
 
 // LoadConfig now validates the config file against the schema before decoding.
@@ -198,8 +254,8 @@ func handleSetTheme(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, referer, http.StatusSeeOther)
 }
 
-func renderLayoutTemplate(page *Page, l *log.Logger) (*template.Template, error) {
-	l.Printf("in renderLayoutTemplate(layout:%s, page:%s)", page.Layout, page.Template)
+func parseTemplates(page *Page, l *log.Logger) (*template.Template, error) {
+	l.Printf("in parseTemplates(layout:%s, page:%s)", page.Layout, page.Template)
 
 	// Define FuncMap with custom functions
 	funcMap := template.FuncMap{
@@ -280,9 +336,9 @@ func renderLayoutTemplate(page *Page, l *log.Logger) (*template.Template, error)
 // getHandler allow to register http handler in a generic way
 func getHandler(page *Page, site *SiteConfig, l *log.Logger) http.HandlerFunc {
 	l.Printf(initCallMsg, page.Title)
-	myTemplate, err := renderLayoutTemplate(page, l)
+	myTemplate, err := parseTemplates(page, l)
 	if err != nil {
-		l.Fatalf("💥💥 fatal error in renderLayoutTemplate err: %v ", err)
+		l.Fatalf("💥💥 fatal error in parseTemplates err: %v ", err)
 	}
 	parts := strings.Split(strings.TrimSpace(page.Route), " ")
 	route := Route{
@@ -303,7 +359,7 @@ func getHandler(page *Page, site *SiteConfig, l *log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != route.Path {
 			l.Printf("💥 requested path %s is not here...", r.URL.Path)
-			http.Error(w, fmt.Errorf("requested path %s not found", r.URL.Path).Error(), http.StatusNotFound)
+			renderError404(w, r)
 			return
 		}
 		l.Printf("in handler '%s' url: %s", page.Route, r.URL.Path)
@@ -318,7 +374,7 @@ func getHandler(page *Page, site *SiteConfig, l *log.Logger) http.HandlerFunc {
 		err = myTemplate.Execute(w, data)
 		if err != nil {
 			l.Printf("💥💥 fatal error in template execution err: %v ", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			renderError500(w, r, err)
 		}
 	}
 }
@@ -333,6 +389,12 @@ func main() {
 	}
 	myServerMux := http.NewServeMux()
 	listenAddress := fmt.Sprintf(":%d", getPortFromEnvOrPanic(defaultPort))
+
+	err = loadErrorTemplates()
+	if err != nil {
+		l.Fatalf("💥💥 fatal error loading templates files: %v", err)
+	}
+
 	myServerMux.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		l.Printf("in my handler 'GET /favicon.ico' url: %s", r.URL.Path)
 		http.ServeFile(w, r, "./favicon.ico")

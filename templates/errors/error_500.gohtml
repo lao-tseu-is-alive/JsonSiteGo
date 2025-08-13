@@ -1,0 +1,10 @@
+{{define "error_500"}}
+    <main class="container">
+        <h1>500 - Internal Server Error</h1>
+        <p>Something went wrong on our end. Please try again later.</p>
+        <a href="/">Back to home</a>
+        {{if .Error}}
+            <pre>{{.Error}}</pre>
+        {{end}}
+    </main>
+{{end}}
