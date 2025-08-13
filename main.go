@@ -150,9 +150,8 @@ func LoadConfig(configPath, schemaPath string) (*SiteConfig, error) {
 }
 
 // getPortFromEnvOrPanic returns a valid TCP/IP listening port based on the values of environment variable :
-//
-//	PORT : int value between 1 and 65535 (the parameter defaultPort will be used if env is not defined)
-//	 in case the ENV variable PORT exists and contains an invalid integer the functions panics
+// PORT : int value between 1 and 65535 (the parameter defaultPort will be used if env is not defined)
+// in case the ENV variable PORT exists and contains an invalid integer the functions panics
 func getPortFromEnvOrPanic(defaultPort int) int {
 	srvPort := defaultPort
 	var err error
@@ -304,7 +303,7 @@ func getHandler(page *Page, site *SiteConfig, l *log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != route.Path {
 			l.Printf("💥 requested path %s is not here...", r.URL.Path)
-			http.Error(w, fmt.Errorf("requested path %s not found", r.URL.Path).Error(), http.StatusBadRequest)
+			http.Error(w, fmt.Errorf("requested path %s not found", r.URL.Path).Error(), http.StatusNotFound)
 			return
 		}
 		l.Printf("in handler '%s' url: %s", page.Route, r.URL.Path)
@@ -342,7 +341,7 @@ func main() {
 	// Dynamically register handlers based on the configuration.
 	for i := range config.Pages {
 		page := &config.Pages[i]
-		if page.CreateHandler {
+		if page.CreateHandler && !page.Draft {
 			myServerMux.Handle(page.Route, getHandler(page, config, l))
 		}
 	}
