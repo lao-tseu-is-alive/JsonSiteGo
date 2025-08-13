@@ -19,12 +19,12 @@ import (
 const (
 	pathToTemplates       = "templates"
 	AppName               = "goMagicWebServer"
-	AppGithub             = "https://github.com/lao-tseu-is-alive/go-simple-http-static-server"
-	AppVersion            = "v0.1.1"
+	AppGitHub             = "https://github.com/lao-tseu-is-alive/JsonSiteGo.git"
+	AppVersion            = "v0.2.0"
 	initCallMsg           = "INITIAL CALL TO %s()\n"
 	defaultPort           = 8888
 	defaultSiteConfigFile = "config.json"
-	defaultSchemaFile     = "https://raw.githubusercontent.com/lao-tseu-is-alive/go-simple-http-static-server/refs/heads/main/config.schema.json"
+	defaultSchemaFile     = "https://raw.githubusercontent.com/lao-tseu-is-alive/JsonSiteGo/refs/heads/main/config.schema.json"
 	defaultReadTimeout    = 10 * time.Second // max time to read request from the client
 	defaultWriteTimeout   = 10 * time.Second // max time to write response to the client
 	defaultIdleTimeout    = 2 * time.Minute  // max time for connections using TCP Keep-Alive
@@ -90,7 +90,7 @@ func LoadConfig(configPath, schemaPath string) (*SiteConfig, error) {
 	var schemaLoader gojsonschema.JSONLoader
 
 	// Determine if the schema path is a remote URL or a local file
-	if strings.HasPrefix(schemaPath, "http://") || strings.HasPrefix(schemaPath, "https://") {
+	if strings.HasPrefix(schemaPath, "https://") || strings.HasPrefix(schemaPath, "https://") {
 		log.Printf("Attempting to load remote JSON schema from: %s", schemaPath)
 		schemaLoader = gojsonschema.NewReferenceLoader(schemaPath)
 	} else {
@@ -325,7 +325,7 @@ func getHandler(page *Page, site *SiteConfig, l *log.Logger) http.HandlerFunc {
 
 func main() {
 	l := log.New(os.Stderr, AppName, log.Ldate|log.Ltime|log.Lshortfile)
-	l.Printf("🚀🚀 Starting App: %s, version: %s, from: %s", AppName, AppVersion, AppGithub)
+	l.Printf("🚀🚀 Starting App: %s, version: %s, from: %s", AppName, AppVersion, AppGitHub)
 
 	config, err := LoadConfig(defaultSiteConfigFile, defaultSchemaFile)
 	if err != nil {

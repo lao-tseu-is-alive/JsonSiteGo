@@ -34,8 +34,8 @@ powered by Go, Pico CSS, and a single, schema-validated JSON config.
 1. **Clone & build:**
 
     ```
-    git clone https://github.com/lao-tseu-is-alive/go-simple-http-static-server.git
-    cd go-simple-http-static-server
+    git clone https://github.com/lao-tseu-is-alive/JsonSiteGo.git
+    cd JsonSiteGo
     go build -o jsonsitego main.go
     ```
 
