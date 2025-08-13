@@ -40,7 +40,7 @@
             {{end}}
             <li>
                 {{if eq .Theme "dark"}}
-                    <a class="contrast" aria-label="Turn off dark mode" data-discover="true" href="/set-theme">
+                    <a class="contrast" aria-label="Turn off dark mode" title="Turn off dark mode" data-discover="true" href="/set-theme">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 32 32"
                              fill="currentColor" class="icon-theme-toggle  moon">
                             <clipPath id="theme-toggle-cutout">
@@ -53,7 +53,7 @@
                         </svg>
                     </a>
                 {{else}}
-                    <a class="contrast" aria-label="Turn on dark mode" data-discover="true" href="/set-theme">
+                    <a class="contrast" aria-label="Turn on dark mode" title="Turn on dark mode" data-discover="true" href="/set-theme">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 32 32"
                              fill="currentColor" class="icon-theme-toggle ">
                             <clipPath id="theme-toggle-cutout">

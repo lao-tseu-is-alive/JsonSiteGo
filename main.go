@@ -18,7 +18,8 @@ import (
 
 const (
 	pathToTemplates       = "templates"
-	AppName               = "goHttpServer"
+	AppName               = "goMagicWebServer"
+	AppGithub             = "https://github.com/lao-tseu-is-alive/go-simple-http-static-server"
 	AppVersion            = "v0.1.1"
 	initCallMsg           = "INITIAL CALL TO %s()\n"
 	defaultPort           = 8888
@@ -325,7 +326,7 @@ func getHandler(page *Page, site *SiteConfig, l *log.Logger) http.HandlerFunc {
 
 func main() {
 	l := log.New(os.Stderr, AppName, log.Ldate|log.Ltime|log.Lshortfile)
-	l.Printf("🚀🚀 Starting App: %s, versio: %s", AppName, AppVersion)
+	l.Printf("🚀🚀 Starting App: %s, version: %s, from: %s", AppName, AppVersion, AppGithub)
 
 	config, err := LoadConfig(defaultSiteConfigFile, defaultSchemaFile)
 	if err != nil {
