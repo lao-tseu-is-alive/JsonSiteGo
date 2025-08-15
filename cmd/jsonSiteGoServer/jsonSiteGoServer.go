@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/lao-tseu-is-alive/JsonSiteGo/pkg/version"
 	"html/template"
 	"io"
 	"log"
@@ -13,17 +14,16 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/xeipuuv/gojsonschema"
 )
 
 const (
 	pathToTemplates       = "templates"
-	AppName               = "JsonSiteGo"
-	AppGitHub             = "https://github.com/lao-tseu-is-alive/JsonSiteGo.git"
-	AppVersion            = "v0.2.3" // Incremented version
 	initCallMsg           = "INITIAL CALL TO %s()\n"
 	defaultPort           = 8888
+	defaultLogName        = "stderr"
 	defaultSiteConfigFile = "config.json"
 	defaultSchemaFile     = "https://raw.githubusercontent.com/lao-tseu-is-alive/JsonSiteGo/refs/heads/main/config.schema.json"
 	defaultReadTimeout    = 10 * time.Second // max time to read request from the client
@@ -206,7 +206,8 @@ func LoadConfig(configPath, schemaPath string, l *log.Logger) (*SiteConfig, erro
 		for _, desc := range result.Errors() {
 			errorStrings = append(errorStrings, fmt.Sprintf("- %s: %s ", desc.Field(), desc.Description()))
 		}
-		return nil, fmt.Errorf(strings.Join(errorStrings, "\n"))
+		l.Printf("💥💥 errors in configuration file %v", strings.Join(errorStrings, "\n"))
+		return nil, fmt.Errorf("💥💥 errors in configuration file")
 	}
 	l.Println("✅ Configuration file validated successfully against schema.")
 
@@ -233,6 +234,37 @@ func getPortFromEnvOrPanic(defaultPort int) int {
 		panic(fmt.Errorf("💥💥 ERROR: PORT should contain an integer between 1 and 65535"))
 	}
 	return srvPort
+}
+
+// GetLogWriterFromEnvOrPanic returns the name of the filename to use for LOG from the content of the env variable :
+// LOG_FILE : string containing the filename to use for LOG, use DISCARD for no log, default is STDERR
+func GetLogWriterFromEnvOrPanic(defaultLogName string) io.Writer {
+	logFileName := defaultLogName
+	val, exist := os.LookupEnv("LOG_FILE")
+	if exist {
+		logFileName = val
+	}
+	if utf8.RuneCountInString(logFileName) < 5 {
+		panic(fmt.Sprintf("💥💥 error env LOG_FILE filename should contain at least %d characters (got %d).",
+			5, utf8.RuneCountInString(val)))
+	}
+	switch logFileName {
+	case "stdout":
+		return os.Stdout
+	case "stderr":
+		return os.Stderr
+	case "DISCARD":
+		return io.Discard
+	default:
+		// Open the file with append, create, and write permissions.
+		// The 0644 permission allows the owner to read/write and others to read.
+		file, err := os.OpenFile(logFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			// Return an error if the file cannot be opened (e.g., due to permissions).
+			panic(fmt.Sprintf("💥💥 ERROR: LOG_FILE %q could not be open : %v", logFileName, err))
+		}
+		return file
+	}
 }
 
 // getThemeFromCookie retrieves the theme from the cookie or defaults to "light".
@@ -403,8 +435,8 @@ func getHandler(page *Page, site *SiteConfig, l *log.Logger) http.HandlerFunc {
 }
 
 func main() {
-	l := log.New(os.Stderr, fmt.Sprintf("%s, ", AppName), log.Ldate|log.Ltime|log.Lshortfile)
-	l.Printf("🚀🚀 Starting App: %s, version: %s, from: %s", AppName, AppVersion, AppGitHub)
+	l := log.New(GetLogWriterFromEnvOrPanic(defaultLogName), fmt.Sprintf("%s, ", version.APP), log.Ldate|log.Ltime|log.Lshortfile)
+	l.Printf("🚀🚀 Starting App: %s, version: %s, build: %s", version.APP, version.VERSION, version.BuildStamp)
 
 	config, err := LoadConfig(defaultSiteConfigFile, defaultSchemaFile, l)
 	if err != nil {
