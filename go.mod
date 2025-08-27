@@ -1,6 +1,6 @@
 module github.com/lao-tseu-is-alive/JsonSiteGo
 
-go 1.24.5
+go 1.25
 
 require github.com/xeipuuv/gojsonschema v1.2.0
 

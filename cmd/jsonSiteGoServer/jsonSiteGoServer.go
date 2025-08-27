@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/lao-tseu-is-alive/JsonSiteGo/pkg/version"
 	"html/template"
 	"io"
 	"log"
@@ -15,6 +14,8 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/lao-tseu-is-alive/JsonSiteGo/pkg/version"
 
 	"github.com/xeipuuv/gojsonschema"
 )

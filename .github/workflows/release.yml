@@ -47,7 +47,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5 # Action to set up the Go environment
         with:
-          go-version: '1.24.5' # Specify the Go version you want to use
+          go-version: '1.25' # Specify the Go version you want to use
       - run: go version
 
       - name: Build
